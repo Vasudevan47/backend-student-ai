@@ -4,27 +4,17 @@ import fetch from "node-fetch";
 
 const app = express();
 
-app.use(cors({
-  origin: "*"
-}));
-
+app.use(cors());
 app.use(express.json());
 
+// GROQ API KEY
 const GROQ_API_KEY = "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";
-
-app.get("/", (req, res) => {
-  res.send("AI Chatbot Backend Running");
-});
 
 app.post("/chat", async (req, res) => {
 
+  const userMessage = req.body.message;
+
   try {
-
-    const userMessage = req.body.message;
-
-    if (!userMessage) {
-      return res.status(400).json({ error: "Message missing" });
-    }
 
     const response = await fetch(
       "https://api.groq.com/openai/v1/chat/completions",
@@ -35,7 +25,7 @@ app.post("/chat", async (req, res) => {
           Authorization: `Bearer ${GROQ_API_KEY}`
         },
         body: JSON.stringify({
-          model: "llama-3.1-70b-versatile",
+          model: "llama-3.1-8b-instant",
           messages: [
             {
               role: "user",
@@ -50,15 +40,19 @@ app.post("/chat", async (req, res) => {
 
     console.log("Groq response:", data);
 
-    const aiText = data.choices?.[0]?.message?.content || "No AI response";
+    if (data.error) {
+      return res.status(500).json({
+        error: data.error.message
+      });
+    }
 
     res.json({
-      response: aiText
+      response: data.choices[0].message.content
     });
 
   } catch (error) {
 
-    console.error("Server error:", error);
+    console.error(error);
 
     res.status(500).json({
       error: "AI request failed"
